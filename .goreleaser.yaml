@@ -21,9 +21,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X buglens/internal/version.Version={{.Version}}
-      - -X buglens/internal/version.Commit={{.Commit}}
-      - -X buglens/internal/version.Date={{.Date}}
+      - -X github.com/ai-hermes/buglens-v2/internal/version.Version={{.Version}}
+      - -X github.com/ai-hermes/buglens-v2/internal/version.Commit={{.Commit}}
+      - -X github.com/ai-hermes/buglens-v2/internal/version.Date={{.Date}}
 
 archives:
   - id: default
