@@ -1,0 +1,43 @@
+version: 2
+
+project_name: buglens
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: buglens
+    main: ./cmd/buglens
+    binary: buglens
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X buglens/internal/version.Version={{.Version}}
+      - -X buglens/internal/version.Commit={{.Commit}}
+      - -X buglens/internal/version.Date={{.Date}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
