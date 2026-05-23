@@ -1,0 +1,40 @@
+@import './variables.less';
+@import 'antd/dist/reset.css';
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: @app-bg;
+  color: @text-color;
+  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.app-brand {
+  font-weight: 600;
+  color: @text-color;
+  margin-right: 24px;
+}
+
+.app-content {
+  padding: 24px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
