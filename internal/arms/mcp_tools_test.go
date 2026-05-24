@@ -70,3 +70,46 @@ func TestArmsRumSearchErrorsExplicitTimeAndQuery(t *testing.T) {
 		t.Fatalf("next_page_token should be present")
 	}
 }
+
+func TestArmsRumGetGitLabProjectMappingFromJSONEnv(t *testing.T) {
+	t.Setenv("BUGLENS_RUM_GITLAB_PROJECT_MAP", `{"rum-a":"group/repo-a","rum-b":"123"}`)
+
+	handlers := map[string]func(context.Context, map[string]any) (map[string]any, error){}
+	RegisterMCPTools(config.Config{}, func(name, _ string, handler func(context.Context, map[string]any) (map[string]any, error), _ ...gmcp.ToolOption) {
+		handlers[name] = handler
+	})
+
+	h := handlers["arms_rum_get_gitlab_project_mapping"]
+	if h == nil {
+		t.Fatalf("handler not registered")
+	}
+
+	payload, err := h(context.Background(), map[string]any{"rum_project": "rum-a"})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if payload["success"] != true {
+		t.Fatalf("expected success")
+	}
+	if payload["gitlab_project"] != "group/repo-a" {
+		t.Fatalf("unexpected mapping: %#v", payload["gitlab_project"])
+	}
+}
+
+func TestArmsRumGetGitLabProjectMappingFromKVEnv(t *testing.T) {
+	t.Setenv("BUGLENS_RUM_GITLAB_PROJECT_MAP", "rum-a=group/repo-a,rum-b=group/repo-b")
+
+	handlers := map[string]func(context.Context, map[string]any) (map[string]any, error){}
+	RegisterMCPTools(config.Config{}, func(name, _ string, handler func(context.Context, map[string]any) (map[string]any, error), _ ...gmcp.ToolOption) {
+		handlers[name] = handler
+	})
+
+	h := handlers["arms_rum_get_gitlab_project_mapping"]
+	payload, err := h(context.Background(), map[string]any{"rum_project": "rum-b"})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if payload["gitlab_project"] != "group/repo-b" {
+		t.Fatalf("unexpected mapping: %#v", payload["gitlab_project"])
+	}
+}

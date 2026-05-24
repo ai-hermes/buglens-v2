@@ -9,8 +9,8 @@ import (
 func TestToolRegistryCountAndNames(t *testing.T) {
 	r := NewRegistry(config.Config{})
 	names := r.ToolNames()
-	if len(names) != 35 {
-		t.Fatalf("expected 35 tools, got %d", len(names))
+	if len(names) != 36 {
+		t.Fatalf("expected 36 tools, got %d", len(names))
 	}
 	mustHave := []string{"gitlab_list_projects", "arms_rum_list_apps", "arms_rum_search_errors"}
 	for _, n := range mustHave {

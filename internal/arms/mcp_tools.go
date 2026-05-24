@@ -2,7 +2,9 @@ package arms
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -97,6 +99,41 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 			return payload, nil
 		},
 		rumSearchErrorsOpts...,
+	)
+
+	rumGitLabMappingOpts := []gmcp.ToolOption{
+		gmcp.WithString("rum_project"),
+	}
+	register("arms_rum_get_gitlab_project_mapping", "Resolve GitLab project mapping for a RUM project from env configuration.",
+		func(_ context.Context, args map[string]any) (map[string]any, error) {
+			rumProject := strings.TrimSpace(strArg(args, "rum_project", ""))
+			if rumProject == "" {
+				rumProject = strings.TrimSpace(cfg.RUMSLSProject)
+			}
+			if rumProject == "" {
+				return nil, fmt.Errorf("rum_project is required (or set BUGLENS_RUM_SLS_PROJECT)")
+			}
+
+			mappings, err := loadRUMGitLabProjectMappings()
+			if err != nil {
+				return nil, err
+			}
+			gitlabProject, ok := mappings[rumProject]
+			if !ok || strings.TrimSpace(gitlabProject) == "" {
+				return nil, fmt.Errorf(
+					"no gitlab mapping found for rum_project=%q (configure BUGLENS_RUM_GITLAB_PROJECT_MAP)",
+					rumProject,
+				)
+			}
+
+			return map[string]any{
+				"success":            true,
+				"rum_project":        rumProject,
+				"gitlab_project":     gitlabProject,
+				"mapping_source_env": "BUGLENS_RUM_GITLAB_PROJECT_MAP",
+			}, nil
+		},
+		rumGitLabMappingOpts...,
 	)
 
 	// register arms_rum_get_error_context when this tool is needed again.
@@ -320,4 +357,48 @@ func int64Arg(v any) (int64, bool) {
 		}
 	}
 	return 0, false
+}
+
+func loadRUMGitLabProjectMappings() (map[string]string, error) {
+	raw := strings.TrimSpace(os.Getenv("BUGLENS_RUM_GITLAB_PROJECT_MAP"))
+	if raw == "" {
+		return nil, fmt.Errorf("BUGLENS_RUM_GITLAB_PROJECT_MAP is not set")
+	}
+
+	jsonMapping := map[string]any{}
+	if err := json.Unmarshal([]byte(raw), &jsonMapping); err == nil && len(jsonMapping) > 0 {
+		out := make(map[string]string, len(jsonMapping))
+		for k, v := range jsonMapping {
+			key := strings.TrimSpace(k)
+			val := strings.TrimSpace(fmt.Sprintf("%v", v))
+			if key != "" && val != "" {
+				out[key] = val
+			}
+		}
+		if len(out) > 0 {
+			return out, nil
+		}
+	}
+
+	out := map[string]string{}
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ';' || r == '\n'
+	})
+	for _, part := range parts {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(kv[0])
+		val := strings.TrimSpace(kv[1])
+		if key != "" && val != "" {
+			out[key] = val
+		}
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf(
+			"invalid BUGLENS_RUM_GITLAB_PROJECT_MAP format: use JSON object or key=value pairs",
+		)
+	}
+	return out, nil
 }
