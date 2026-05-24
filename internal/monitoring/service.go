@@ -4,6 +4,7 @@ import "context"
 
 type ArmsClient interface {
 	GetRUMApps(ctx context.Context, pageToken string, pageSize int) (*AdapterResult, error)
+	SearchRUMErrors(ctx context.Context, fromMS, toMS int64, pageToken string, pageSize int, query string) (*AdapterResult, error)
 	GetRUMExceptionStack(ctx context.Context, pid string, line, column int, sourcemapType, exceptionBinaryImages string) (*AdapterResult, error)
 }
 
@@ -25,6 +26,12 @@ func (s *AtomicService) ArmsListRUMApps(ctx context.Context, pageToken string, p
 func (s *AtomicService) ArmsResolveExceptionStack(ctx context.Context, pid string, line, column int, sourcemapType, exceptionBinaryImages string) map[string]any {
 	return Wrap(func() (*AdapterResult, error) {
 		return s.arms.GetRUMExceptionStack(ctx, pid, line, column, sourcemapType, exceptionBinaryImages)
+	})
+}
+
+func (s *AtomicService) ArmsSearchRUMErrors(ctx context.Context, fromMS, toMS int64, pageToken string, pageSize int, query string) map[string]any {
+	return Wrap(func() (*AdapterResult, error) {
+		return s.arms.SearchRUMErrors(ctx, fromMS, toMS, pageToken, pageSize, query)
 	})
 }
 
