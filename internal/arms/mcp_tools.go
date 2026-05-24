@@ -57,11 +57,6 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 	}
 	register("arms_rum_search_errors", "Search ARMS frontend (RUM) errors by structured filters or raw query.",
 		func(ctx context.Context, args map[string]any) (map[string]any, error) {
-			project, logstore, err := resolveRUMTarget(cfg, args)
-			if err != nil {
-				return nil, err
-			}
-
 			var fromPtr, toPtr *int64
 			if v, ok := int64Arg(args["time_from_ms"]); ok {
 				fromPtr = &v
@@ -88,16 +83,14 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 				strArg(args, "exception_message", ""),
 				strArg(args, "keyword", ""),
 			)
+			_ = boolArg(args, "reverse", true)
 
-			payload := service.SLSSearchLogs(
+			payload := service.ArmsSearchRUMErrors(
 				ctx,
-				project,
-				logstore,
 				fromMS,
 				toMS,
 				strArg(args, "page_token", ""),
 				intArg(args, "page_size", 50),
-				boolArg(args, "reverse", true),
 				query,
 			)
 			payload["query"] = query
@@ -106,33 +99,34 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 		rumSearchErrorsOpts...,
 	)
 
-	rumGetErrorContextOpts := []gmcp.ToolOption{
-		gmcp.WithString("pack_id", gmcp.Required()),
-		gmcp.WithString("pack_meta", gmcp.Required()),
-		gmcp.WithString("project"),
-		gmcp.WithString("logstore"),
-		gmcp.WithNumber("back_lines"),
-		gmcp.WithNumber("forward_lines"),
-	}
-	register("arms_rum_get_error_context", "Get ARMS/SLS error context lines around a log pack record.",
-		func(ctx context.Context, args map[string]any) (map[string]any, error) {
-			project, logstore, err := resolveRUMTarget(cfg, args)
-			if err != nil {
-				return nil, err
-			}
-			return service.SLSGetLogContext(
-				ctx,
-				project,
-				logstore,
-				strArg(args, "pack_id", ""),
-				strArg(args, "pack_meta", ""),
-				intArg(args, "back_lines", 30),
-				intArg(args, "forward_lines", 30),
-			), nil
-		},
-		rumGetErrorContextOpts...,
-	)
-
+	/*
+		rumGetErrorContextOpts := []gmcp.ToolOption{
+			gmcp.WithString("pack_id", gmcp.Required()),
+			gmcp.WithString("pack_meta", gmcp.Required()),
+			gmcp.WithString("project"),
+			gmcp.WithString("logstore"),
+			gmcp.WithNumber("back_lines"),
+			gmcp.WithNumber("forward_lines"),
+		}
+		register("arms_rum_get_error_context", "Get ARMS/SLS error context lines around a log pack record.",
+			func(ctx context.Context, args map[string]any) (map[string]any, error) {
+				project, logstore, err := resolveRUMTarget(cfg, args)
+				if err != nil {
+					return nil, err
+				}
+				return service.SLSGetLogContext(
+					ctx,
+					project,
+					logstore,
+					strArg(args, "pack_id", ""),
+					strArg(args, "pack_meta", ""),
+					intArg(args, "back_lines", 30),
+					intArg(args, "forward_lines", 30),
+				), nil
+			},
+			rumGetErrorContextOpts...,
+		)
+	*/
 	stackHandler := func(ctx context.Context, args map[string]any) (map[string]any, error) {
 		payload := service.ArmsResolveExceptionStack(
 			ctx,
@@ -163,73 +157,68 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 		stackHandler,
 		stackOpts...,
 	)
-	register(
-		"arms_exception_stack_tool",
-		"Compatibility alias of arms_rum_resolve_exception_stack.",
-		stackHandler,
-		stackOpts...,
-	)
-
-	errorDetailOpts := []gmcp.ToolOption{
-		gmcp.WithString("app"),
-		gmcp.WithString("page"),
-		gmcp.WithString("version"),
-		gmcp.WithString("error_message"),
-		gmcp.WithString("project"),
-		gmcp.WithString("logstore"),
-		gmcp.WithNumber("time_from_ms"),
-		gmcp.WithNumber("time_to_ms"),
-		gmcp.WithString("query"),
-		gmcp.WithNumber("page_size"),
-	}
-	register("arms_get_error_detail", "Get detailed error logs by app/page/version/message filters.",
-		func(ctx context.Context, args map[string]any) (map[string]any, error) {
-			project, logstore, err := resolveRUMTarget(cfg, args)
-			if err != nil {
-				return nil, err
-			}
-
-			var fromPtr, toPtr *int64
-			if v, ok := int64Arg(args["time_from_ms"]); ok {
-				fromPtr = &v
-			}
-			if v, ok := int64Arg(args["time_to_ms"]); ok {
-				toPtr = &v
-			}
-
-			fromMS, toMS, err := monitoring.ResolveTimeRange(fromPtr, toPtr, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			parts := []string{}
-			for _, key := range []string{"app", "page", "version", "error_message", "query"} {
-				if value := strings.TrimSpace(strArg(args, key, "")); value != "" {
-					parts = append(parts, value)
+	/*
+		errorDetailOpts := []gmcp.ToolOption{
+			gmcp.WithString("app"),
+			gmcp.WithString("page"),
+			gmcp.WithString("version"),
+			gmcp.WithString("error_message"),
+			gmcp.WithString("project"),
+			gmcp.WithString("logstore"),
+			gmcp.WithNumber("time_from_ms"),
+			gmcp.WithNumber("time_to_ms"),
+			gmcp.WithString("query"),
+			gmcp.WithNumber("page_size"),
+		}
+		register("arms_get_error_detail", "Get detailed error logs by app/page/version/message filters.",
+			func(ctx context.Context, args map[string]any) (map[string]any, error) {
+				project, logstore, err := resolveRUMTarget(cfg, args)
+				if err != nil {
+					return nil, err
 				}
-			}
 
-			query := "*"
-			if len(parts) > 0 {
-				query = strings.Join(parts, " and ")
-			}
+				var fromPtr, toPtr *int64
+				if v, ok := int64Arg(args["time_from_ms"]); ok {
+					fromPtr = &v
+				}
+				if v, ok := int64Arg(args["time_to_ms"]); ok {
+					toPtr = &v
+				}
 
-			payload := service.SLSSearchLogs(
-				ctx,
-				project,
-				logstore,
-				fromMS,
-				toMS,
-				"",
-				intArg(args, "page_size", 20),
-				true,
-				query,
-			)
-			payload["query"] = query
-			return payload, nil
-		},
-		errorDetailOpts...,
-	)
+				fromMS, toMS, err := monitoring.ResolveTimeRange(fromPtr, toPtr, nil)
+				if err != nil {
+					return nil, err
+				}
+
+				parts := []string{}
+				for _, key := range []string{"app", "page", "version", "error_message", "query"} {
+					if value := strings.TrimSpace(strArg(args, key, "")); value != "" {
+						parts = append(parts, value)
+					}
+				}
+
+				query := "*"
+				if len(parts) > 0 {
+					query = strings.Join(parts, " and ")
+				}
+
+				payload := service.SLSSearchLogs(
+					ctx,
+					project,
+					logstore,
+					fromMS,
+					toMS,
+					"",
+					intArg(args, "page_size", 20),
+					true,
+					query,
+				)
+				payload["query"] = query
+				return payload, nil
+			},
+			errorDetailOpts...,
+		)
+	*/
 }
 
 func resolveRUMTarget(cfg config.Config, args map[string]any) (string, string, error) {
