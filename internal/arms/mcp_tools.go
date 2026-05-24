@@ -99,6 +99,7 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 		rumSearchErrorsOpts...,
 	)
 
+	// register arms_rum_get_error_context when this tool is needed again.
 	/*
 		rumGetErrorContextOpts := []gmcp.ToolOption{
 			gmcp.WithString("pack_id", gmcp.Required()),
@@ -157,6 +158,17 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 		stackHandler,
 		stackOpts...,
 	)
+	// register arms_exception_stack_tool alias when compatibility alias is needed.
+	/*
+		register(
+			"arms_exception_stack_tool",
+			"Compatibility alias of arms_rum_resolve_exception_stack.",
+			stackHandler,
+			stackOpts...,
+		)
+	*/
+
+	// register arms_get_error_detail when this aggregate query tool is needed again.
 	/*
 		errorDetailOpts := []gmcp.ToolOption{
 			gmcp.WithString("app"),
