@@ -72,7 +72,7 @@ func TestArmsRumSearchErrorsExplicitTimeAndQuery(t *testing.T) {
 }
 
 func TestArmsRumGetGitLabProjectMappingFromJSONEnv(t *testing.T) {
-	t.Setenv("BUGLENS_RUM_GITLAB_PROJECT_MAP", `{"rum-a":"group/repo-a","rum-b":"123"}`)
+	t.Setenv("BUGLENS_RUM_PID_GITLAB_PROJECT_MAP", `{"pid-a":"group/repo-a","pid-b":"123"}`)
 
 	handlers := map[string]func(context.Context, map[string]any) (map[string]any, error){}
 	RegisterMCPTools(config.Config{}, func(name, _ string, handler func(context.Context, map[string]any) (map[string]any, error), _ ...gmcp.ToolOption) {
@@ -84,7 +84,7 @@ func TestArmsRumGetGitLabProjectMappingFromJSONEnv(t *testing.T) {
 		t.Fatalf("handler not registered")
 	}
 
-	payload, err := h(context.Background(), map[string]any{"rum_project": "rum-a"})
+	payload, err := h(context.Background(), map[string]any{"pid": "pid-a"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestArmsRumGetGitLabProjectMappingFromJSONEnv(t *testing.T) {
 }
 
 func TestArmsRumGetGitLabProjectMappingFromKVEnv(t *testing.T) {
-	t.Setenv("BUGLENS_RUM_GITLAB_PROJECT_MAP", "rum-a=group/repo-a,rum-b=group/repo-b")
+	t.Setenv("BUGLENS_RUM_PID_GITLAB_PROJECT_MAP", "pid-a=group/repo-a,pid-b=group/repo-b")
 
 	handlers := map[string]func(context.Context, map[string]any) (map[string]any, error){}
 	RegisterMCPTools(config.Config{}, func(name, _ string, handler func(context.Context, map[string]any) (map[string]any, error), _ ...gmcp.ToolOption) {
@@ -105,7 +105,7 @@ func TestArmsRumGetGitLabProjectMappingFromKVEnv(t *testing.T) {
 	})
 
 	h := handlers["arms_rum_get_gitlab_project_mapping"]
-	payload, err := h(context.Background(), map[string]any{"rum_project": "rum-b"})
+	payload, err := h(context.Background(), map[string]any{"pid": "pid-b"})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

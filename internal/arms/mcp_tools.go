@@ -102,35 +102,32 @@ func RegisterMCPTools(cfg config.Config, register MCPToolRegistrar) {
 	)
 
 	rumGitLabMappingOpts := []gmcp.ToolOption{
-		gmcp.WithString("rum_project"),
+		gmcp.WithString("pid", gmcp.Required()),
 	}
-	register("arms_rum_get_gitlab_project_mapping", "Resolve GitLab project mapping for a RUM project from env configuration.",
+	register("arms_rum_get_gitlab_project_mapping", "Resolve GitLab project mapping for a RUM PID from env configuration.",
 		func(_ context.Context, args map[string]any) (map[string]any, error) {
-			rumProject := strings.TrimSpace(strArg(args, "rum_project", ""))
-			if rumProject == "" {
-				rumProject = strings.TrimSpace(cfg.RUMSLSProject)
-			}
-			if rumProject == "" {
-				return nil, fmt.Errorf("rum_project is required (or set BUGLENS_RUM_SLS_PROJECT)")
+			pid := strings.TrimSpace(strArg(args, "pid", ""))
+			if pid == "" {
+				return nil, fmt.Errorf("pid is required")
 			}
 
-			mappings, err := loadRUMGitLabProjectMappings()
+			mappings, err := loadRUMPIDGitLabProjectMappings()
 			if err != nil {
 				return nil, err
 			}
-			gitlabProject, ok := mappings[rumProject]
+			gitlabProject, ok := mappings[pid]
 			if !ok || strings.TrimSpace(gitlabProject) == "" {
 				return nil, fmt.Errorf(
-					"no gitlab mapping found for rum_project=%q (configure BUGLENS_RUM_GITLAB_PROJECT_MAP)",
-					rumProject,
+					"no gitlab mapping found for pid=%q (configure BUGLENS_RUM_PID_GITLAB_PROJECT_MAP)",
+					pid,
 				)
 			}
 
 			return map[string]any{
 				"success":            true,
-				"rum_project":        rumProject,
+				"pid":                pid,
 				"gitlab_project":     gitlabProject,
-				"mapping_source_env": "BUGLENS_RUM_GITLAB_PROJECT_MAP",
+				"mapping_source_env": "BUGLENS_RUM_PID_GITLAB_PROJECT_MAP",
 			}, nil
 		},
 		rumGitLabMappingOpts...,
@@ -359,10 +356,10 @@ func int64Arg(v any) (int64, bool) {
 	return 0, false
 }
 
-func loadRUMGitLabProjectMappings() (map[string]string, error) {
-	raw := strings.TrimSpace(os.Getenv("BUGLENS_RUM_GITLAB_PROJECT_MAP"))
+func loadRUMPIDGitLabProjectMappings() (map[string]string, error) {
+	raw := strings.TrimSpace(os.Getenv("BUGLENS_RUM_PID_GITLAB_PROJECT_MAP"))
 	if raw == "" {
-		return nil, fmt.Errorf("BUGLENS_RUM_GITLAB_PROJECT_MAP is not set")
+		return nil, fmt.Errorf("BUGLENS_RUM_PID_GITLAB_PROJECT_MAP is not set")
 	}
 
 	jsonMapping := map[string]any{}
@@ -397,7 +394,7 @@ func loadRUMGitLabProjectMappings() (map[string]string, error) {
 	}
 	if len(out) == 0 {
 		return nil, fmt.Errorf(
-			"invalid BUGLENS_RUM_GITLAB_PROJECT_MAP format: use JSON object or key=value pairs",
+			"invalid BUGLENS_RUM_PID_GITLAB_PROJECT_MAP format: use JSON object or key=value pairs",
 		)
 	}
 	return out, nil
